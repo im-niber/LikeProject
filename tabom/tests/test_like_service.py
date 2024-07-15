@@ -1,8 +1,8 @@
 from django.db import IntegrityError
 from django.test import TestCase
 
-from tabom.models import Article, User
-from tabom.services import do_like
+from tabom.models import Article, Like, User
+from tabom.services import do_like, undo_like
 
 
 class TestLikeService(TestCase):
@@ -21,7 +21,7 @@ class TestLikeService(TestCase):
         self.assertEqual(article.id, like.article.id)
 
     def test_a_user_can_like_an_article_only_once(self) -> None:
-        #Given
+        # Given
         user = User.objects.create(name="test")
         article = Article.objects.create(title="test article")
 
@@ -52,3 +52,18 @@ class TestLikeService(TestCase):
         article = Article.objects.get(id=article.id)
         self.assertEqual(1, article.like_set.count())
 
+    def test_a_user_can_undo_like(self) -> None:
+        # Given
+        user = User.objects.create(name="test")
+        article = Article.objects.create(title="test article")
+        like = do_like(user.id, article.id)
+
+        # When
+        undo_like(user.id, article.id)
+
+        # Then
+        with self.assertRaises(Like.DoesNotExist):
+            Like.objects.get(id=like.id)
+
+        self.assertFalse(Like.objects.filter(id=like.id).exists())
+        self.assertIsNone(Like.objects.filter(id=like.id).first())
