@@ -1,5 +1,6 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from tabom.models import Article, Like, User
 from tabom.services import do_like, undo_like
@@ -13,7 +14,10 @@ class TestLikeService(TestCase):
         article = Article.objects.create(title="test article")
 
         # When
-        like = do_like(user.id, article.id)
+        with CaptureQueriesContext(connection) as ctx:
+            # When
+            like = do_like(user.id, article.id)
+            print(ctx.captured_queries)
 
         # Then
         self.assertIsNotNone(like)
